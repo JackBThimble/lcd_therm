@@ -2,3 +2,9 @@
 
 #define TEMP_MIN 50
 #define TEMP_MAX 90
+
+#define RTC_TASK_STACK_SIZE 4196
+#define RTC_TASK_PRIORITY 5
+
+#define TEMP_TASK_STACK_SIZE 4196
+#define TEMP_TASK_PRIORITY 5

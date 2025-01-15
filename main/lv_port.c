@@ -9,11 +9,15 @@
 #include "expander.h"
 #include "i2c_bus.h"
 #include "lcd.h"
+#include "lv_conf_internal.h"
 #include "lvgl.h"
 
 #include "esp_lcd_touch_gt911.h"
 #include "soc/clk_tree_defs.h"
 
+#define LV_STYLE_CACHE_SIZE 32
+#undef LV_DRAW_THREAD_STACK_SIZE
+#define LV_DRAW_THREAD_STACK_SIZE (32 * 1024)
 static const char *TAG = "LVGL Port";
 static esp_lcd_panel_handle_t lcd_panel = NULL;
 static esp_lcd_touch_handle_t touch_handle = NULL;
@@ -46,7 +50,8 @@ esp_err_t lcd_init(void) {
 
         ESP_LOGI(TAG, "Initialize RGB Panel");
         esp_lcd_rgb_panel_config_t panel_conf = {
-            .clk_src = LCD_CLK_SRC_PLL240M,
+            .clk_src = LCD_CLK_SRC_DEFAULT,
+            .num_fbs = 2,
             .data_width = 16,
             .bits_per_pixel = 16,
             .de_gpio_num = LCD_IO_RGB_DE,
@@ -75,7 +80,7 @@ esp_err_t lcd_init(void) {
                 },
             .timings =
                 {
-                    .pclk_hz = 16 * 1000 * 1000,
+                    .pclk_hz = 23 * 1000 * 1000,
                     .h_res = LCD_H_RES,
                     .v_res = LCD_V_RES,
                     .hsync_pulse_width = 4,
@@ -87,13 +92,17 @@ esp_err_t lcd_init(void) {
                     .flags =
                         {
                             .pclk_active_neg = 1,
+                            .vsync_idle_low = true,
+                            .hsync_idle_low = true,
+                            .de_idle_high = false,
                         },
                 },
             .flags =
                 {
-                    .fb_in_psram = 1,
+                    .fb_in_psram = true,
+                    .refresh_on_demand = false,
                 },
-            .num_fbs = 2,
+            .bounce_buffer_size_px = 800 * 10,
         };
         if ((ret = esp_lcd_new_rgb_panel(&panel_conf, &lcd_panel)) != ESP_OK) {
                 ESP_LOGE(TAG, "RBG LCD init failed");
@@ -156,7 +165,7 @@ esp_err_t lvgl_init(void) {
             .task_stack = 8192,
             .task_affinity = 1,
             .task_max_sleep_ms = 500,
-            .timer_period_ms = 5,
+            .timer_period_ms = 10,
         };
 
         esp_err_t ret;
@@ -164,11 +173,10 @@ esp_err_t lvgl_init(void) {
                 ESP_LOGE(TAG, "Failed to initialize LVGL port");
                 return ret;
         }
-        uint32_t buff_size = LCD_H_RES * LCD_V_RES;
 
         ESP_LOGD(TAG, "Add LCD Screen");
         const lvgl_port_display_cfg_t disp_cfg = {.panel_handle = lcd_panel,
-                                                  .buffer_size = buff_size,
+                                                  .buffer_size = 800 * 100,
                                                   .double_buffer = true,
                                                   .hres = LCD_H_RES,
                                                   .vres = LCD_V_RES,
@@ -184,13 +192,13 @@ esp_err_t lvgl_init(void) {
                                                   .flags = {
                                                       .buff_dma = true,
                                                       .buff_spiram = true,
-                                                      .direct_mode = false,
+                                                      .direct_mode = true,
                                                       .swap_bytes = false,
                                                   }};
 
         const lvgl_port_display_rgb_cfg_t rgb_cfg = {.flags = {
                                                          .avoid_tearing = true,
-                                                         .bb_mode = false,
+                                                         .bb_mode = true,
                                                      }};
 
         lvgl_disp = lvgl_port_add_disp_rgb(&disp_cfg, &rgb_cfg);
