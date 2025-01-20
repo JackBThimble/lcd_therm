@@ -6,6 +6,7 @@
 #include "esp_lcd_panel_rgb.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
+#include "esp_lvgl_port_touch.h"
 #include "expander.h"
 #include "i2c_bus.h"
 #include "lcd.h"
@@ -206,6 +207,7 @@ esp_err_t lvgl_init(void) {
             .disp = lvgl_disp,
             .handle = touch_handle,
         };
+
         lvgl_touch_indev = lvgl_port_add_touch(&touch_cfg);
 
         return ESP_OK;

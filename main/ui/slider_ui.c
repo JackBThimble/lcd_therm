@@ -1,8 +1,8 @@
-#include "slider.h"
+#include "slider_ui.h"
 #include "app_settings.h"
 #include "lv_port.h"
 #include "main.h"
-#include "subjects.h"
+#include "subjects_ui.h"
 #include "ui.h"
 
 void slider_event_handler(lv_event_t *e) {

@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "core/lv_obj_pos.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
@@ -9,10 +10,10 @@
 #include "misc/lv_area.h"
 #include "misc/lv_color.h"
 #include "misc/lv_style.h"
-#include "settings.h"
-#include "slider.h"
-#include "styles.h"
-#include "subjects.h"
+#include "settings_ui.h"
+#include "slider_ui.h"
+#include "styles_ui.h"
+#include "subjects_ui.h"
 #include "weather_icons.h"
 #include "widgets/label/lv_label.h"
 #include <string.h>
@@ -51,8 +52,6 @@ esp_err_t create_ui(void) {
         lvgl_port_lock(0);
 
         lv_mem_monitor(&mem);
-        ESP_LOGI(TAG, "Total: %d, Free: %d, Used: %d, Fragmentation: %d\n",
-                 mem.total_size, mem.free_size, mem.used_pct, mem.frag_pct);
         init_styles();
         init_subjects();
 
@@ -65,16 +64,8 @@ esp_err_t create_ui(void) {
 
 void main_screen_settings_button_cb(lv_event_t *e) {
         lvgl_port_lock(0);
-        ESP_LOGI(TAG, "Total: %d, Free: %d, Used: %d, Fragmentation: %d\n",
-                 mem.total_size, mem.free_size, mem.used_pct, mem.frag_pct);
-        ESP_LOGI(TAG, "Creating settings screen");
         create_settings_screen(&settings_screen);
-        ESP_LOGI(TAG, "Total: %d, Free: %d, Used: %d, Fragmentation: %d\n",
-                 mem.total_size, mem.free_size, mem.used_pct, mem.frag_pct);
-        ESP_LOGI(TAG, "Loading settings screen");
         lv_screen_load(settings_screen.scr);
-        ESP_LOGI(TAG, "Total: %d, Free: %d, Used: %d, Fragmentation: %d\n",
-                 mem.total_size, mem.free_size, mem.used_pct, mem.frag_pct);
         lvgl_port_unlock();
 }
 void create_main_screen(void) {
@@ -161,6 +152,7 @@ void create_settings_button(lv_obj_t *scr, lv_align_t align, int16_t offset_x,
         lv_obj_set_style_text_font(main_screen.settings_button_label,
                                    &lv_font_montserrat_32, 0);
         lv_obj_center(main_screen.settings_button_label);
+        lv_obj_set_ext_click_area(main_screen.settings_button, 30);
         lvgl_port_unlock();
 }
 void create_target_temperature_label(lv_obj_t *scr, lv_align_t align,

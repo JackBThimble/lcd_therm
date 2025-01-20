@@ -4,6 +4,7 @@
 
 typedef struct {
         lv_obj_t *scr;
+        lv_obj_t *heading_container;
         lv_obj_t *header_label;
         lv_obj_t *back_button;
         lv_obj_t *back_button_label;

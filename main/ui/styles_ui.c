@@ -1,4 +1,4 @@
-#include "styles.h"
+#include "styles_ui.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
 #include "fonts/lcd_therm_fonts.h"

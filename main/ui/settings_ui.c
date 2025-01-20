@@ -1,4 +1,5 @@
-#include "settings.h"
+#include "settings_ui.h"
+#include "core/lv_obj_pos.h"
 #include "core/lv_obj_scroll.h"
 #include "core/lv_obj_style_gen.h"
 #include "esp_err.h"
@@ -6,25 +7,30 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 #include "misc/lv_event.h"
-#include "styles.h"
+#include "styles_ui.h"
 #include "ui.h"
 #include "widgets/label/lv_label.h"
+#include "wifi_icons.h"
+#include "wifi_ui.h"
 
-extern lv_mem_monitor_t mem;
 static const char *TAG = "Settings screen";
+extern settings_screen_t settings_screen;
+
+static void wifi_settings_done_cb(void) {
+        ESP_LOGI(TAG, "Returned from WiFi settings");
+}
+
 void back_button_cb(lv_event_t *e) {
         lvgl_port_lock(0);
-        ESP_LOGI(TAG, "Total: %d, Free: %d, Used: %d, Fragmentation: %d\n",
-                 mem.total_size, mem.free_size, mem.used_pct, mem.frag_pct);
-        ESP_LOGI(TAG, "Cleaning settings screen");
         lv_obj_t *scr = lv_event_get_user_data(e);
         lv_obj_clean(scr);
-        ESP_LOGI(TAG, "Total: %d, Free: %d, Used: %d, Fragmentation: %d\n",
-                 mem.total_size, mem.free_size, mem.used_pct, mem.frag_pct);
-        ESP_LOGI(TAG, "Loading Main Screen");
         lv_screen_load(main_screen.scr);
-        ESP_LOGI(TAG, "Total: %d, Free: %d, Used: %d, Fragmentation: %d\n",
-                 mem.total_size, mem.free_size, mem.used_pct, mem.frag_pct);
+        lvgl_port_unlock();
+}
+
+void wifi_btn_cb(lv_event_t *e) {
+        lvgl_port_lock(0);
+        show_wifi_ui();
         lvgl_port_unlock();
 }
 
@@ -36,28 +42,35 @@ void create_settings_screen(settings_screen_t *ss) {
         lvgl_port_lock(0);
         ss->scr = lv_obj_create(NULL);
 
-        ss->header_label = lv_label_create(ss->scr);
-        lv_obj_add_style(ss->header_label, &main_ui_style_48, 0);
-        lv_label_set_text(ss->header_label, "Main Settings");
-        lv_obj_align(ss->header_label, LV_ALIGN_TOP_MID, 0, 10);
+        ss->heading_container = lv_obj_create(ss->scr);
+        lv_obj_set_size(ss->heading_container, 800, 80);
+        lv_obj_set_style_bg_color(ss->heading_container, lv_color_hex(0x383838),
+                                  0);
+        lv_obj_set_style_radius(ss->heading_container, 0, 0);
+        lv_obj_set_style_border_width(ss->heading_container, 0, 0);
 
-        ss->back_button = lv_button_create(ss->scr);
+        ss->header_label = lv_label_create(ss->heading_container);
+        lv_obj_add_style(ss->header_label, &main_ui_style_40, 0);
+        lv_label_set_text(ss->header_label, "Main Settings");
+        lv_obj_center(ss->header_label);
+
+        ss->back_button = lv_button_create(ss->heading_container);
         lv_obj_set_size(ss->back_button, 50, 50);
-        lv_obj_align(ss->back_button, LV_ALIGN_TOP_LEFT, 50, 10);
+        lv_obj_align(ss->back_button, LV_ALIGN_LEFT_MID, 40, 0);
         lv_obj_set_style_bg_opa(ss->back_button, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(ss->back_button, 0, 0);
-
+        lv_obj_set_ext_click_area(ss->back_button, 50);
         lv_obj_add_event_cb(ss->back_button, back_button_cb, LV_EVENT_PRESSED,
                             (void *)ss->scr);
 
         ss->back_button_label = lv_label_create(ss->back_button);
-        lv_obj_add_style(ss->back_button_label, &main_ui_style_40, 0);
+        lv_obj_add_style(ss->back_button_label, &main_ui_style_32, 0);
         lv_label_set_text(ss->back_button_label, LV_SYMBOL_LEFT);
         lv_obj_center(ss->back_button_label);
 
         ss->item_container = lv_obj_create(ss->scr);
         lv_obj_set_size(ss->item_container, 700, 320);
-        lv_obj_center(ss->item_container);
+        lv_obj_align(ss->item_container, LV_ALIGN_CENTER, 0, 40);
         lv_obj_set_flex_flow(ss->item_container, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(ss->item_container, LV_FLEX_ALIGN_SPACE_EVENLY,
                               LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -68,8 +81,7 @@ void create_settings_screen(settings_screen_t *ss) {
         lv_obj_set_style_radius(ss->item_container, 10, 0);
 
         ss->wifi_item = add_settings_item(ss->item_container, LV_SYMBOL_WIFI,
-                                          "Wifi Settings", settings_select_cb,
-                                          (void *)WIFI_CB_TRIGGER);
+                                          "Wifi Settings", wifi_btn_cb, NULL);
         ss->location_item = add_settings_item(
             ss->item_container, LV_SYMBOL_GPS, "Location Settings",
             settings_select_cb, (void *)LOCATION_CB_TRIGGER);
@@ -80,19 +92,21 @@ void create_settings_screen(settings_screen_t *ss) {
 }
 
 void settings_select_cb(lv_event_t *e) {
-        lv_obj_t *target = lv_event_get_target(e);
         lvgl_port_lock(0);
+        lv_obj_t *target = lv_event_get_target(e);
         settings_item_trigger_type_t *trigger =
             (settings_item_trigger_type_t *)lv_obj_get_user_data(target);
+        lv_obj_t *current_screen = lv_screen_active();
+
         switch (*trigger) {
         case WIFI_CB_TRIGGER:
-
+                ESP_LOGI(TAG, "Target is WIFI_CB_TRIGGER");
                 break;
         case LOCATION_CB_TRIGGER:
-
+                return;
                 break;
         case APP_CB_TRIGGER:
-
+                return;
                 break;
         default:
                 break;
@@ -127,6 +141,6 @@ lv_obj_t *add_settings_item(lv_obj_t *parent, const char *icon,
         lv_label_set_text(title_label, title);
         lv_obj_set_style_text_font(title_label, &lv_font_montserrat_24, 0);
 
-        return card;
         lvgl_port_unlock();
+        return card;
 }

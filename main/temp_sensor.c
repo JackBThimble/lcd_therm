@@ -12,7 +12,7 @@
 #include "lvgl.h"
 #include "main.h"
 #include "soc/clk_tree_defs.h"
-#include "subjects.h"
+#include "subjects_ui.h"
 #include "ui.h"
 
 #define SHT3X_ADDR 0x44

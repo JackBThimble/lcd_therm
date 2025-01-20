@@ -9,13 +9,14 @@
 #include "i2c_bus.h"
 #include "lv_port.h"
 #include "lvgl.h"
-#include "others/observer/lv_observer.h"
 #include "rtc.h"
-#include "subjects.h"
+#include "subjects_ui.h"
 #include "temp_sensor.h"
 #include "ui.h"
 #include "weather_icons.h"
+#include "wifi.h"
 #include "wifi_icons.h"
+#include "wifi_ui.h"
 #include <stdio.h>
 
 int32_t g_target_temperature = 70;
@@ -34,11 +35,19 @@ char g_current_time_string[16] = "12:00 PM";
 static void update_time_task(void *pvParameters);
 
 void app_main(void) {
+        esp_err_t ret = nvs_flash_init();
+        if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
+            ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+                ESP_ERROR_CHECK(nvs_flash_erase());
+                ret = nvs_flash_init();
+        }
+        ESP_ERROR_CHECK(ret);
         ESP_ERROR_CHECK(i2c_bus_init());
         ESP_ERROR_CHECK(expander_init());
         ESP_ERROR_CHECK(lcd_init());
         ESP_ERROR_CHECK(touch_init());
         ESP_ERROR_CHECK(lvgl_init());
+        initialize_wifi();
         ESP_ERROR_CHECK(ext_rtc_init());
         ESP_ERROR_CHECK(temp_sensor_init());
 
